@@ -89,3 +89,18 @@ app.delete("/chats/:id",async (req,res)=>{
     console.log(deletedChat);
     res.redirect("/chats");
 })
+
+app.get("/chats/:id",async (req,res,next)=>{
+    let {id} = req.params;
+    let chat = await Chat.findById(id);
+    if(!chat){
+        return next(new ExpressError(404,"Chat Not Found Or Deleted"));
+    }
+    // console.log(chat);
+    res.render("show.ejs",{chat});
+})
+
+app.use((err,req,res,next)=>{
+    let {status=500,message="Some error occured"} = err;
+    res.status(status).send(message);
+})
