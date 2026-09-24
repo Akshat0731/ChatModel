@@ -5,7 +5,7 @@ const path = require("path");
 const port = 8080;
 const Chat = require("./models/chat.js");
 const methodOverride = require("method-override");
-
+const ExpressError = require("./ExpressError");
 app.use(methodOverride("_method"));
 app.use(express.urlencoded({extended:true}));
 app.listen(port,()=>{
