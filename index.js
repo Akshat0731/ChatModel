@@ -38,12 +38,12 @@ app.set("views",path.join(__dirname,"views"));
 //     console.log(res);
 // })
 
-app.get("/chats",async (req,res)=>{
+app.get("/chats",asyncWrap(async (req,res)=>{
     let chats = await Chat.find();
     // console.log(chats);
     res.render("index.ejs",{chats});
     // res.send("working");
-})
+}))
 
 app.use(express.static(path.join(__dirname,"public")));
 
@@ -51,7 +51,7 @@ app.get("/chats/new",(req,res)=>{
     res.render("new.ejs");
 })
 
-app.post("/chats",(req,res)=>{
+app.post("/chats",asyncWrap(async (req,res)=>{
     let {from,msg,to} = req.body;
     let newChat = new Chat({
         from:from,
@@ -59,7 +59,7 @@ app.post("/chats",(req,res)=>{
         to:to,
         created_at:new Date(),
     });
-    newChat.save()
+    await newChat.save()
     .then((res)=>{
         console.log("saved successfully");
     }).catch((err)=>{
@@ -67,30 +67,30 @@ app.post("/chats",(req,res)=>{
     })
 
     res.redirect("/chats");
-})
+}))
 
-app.get("/chats/:id/edit",async (req,res)=>{
+app.get("/chats/:id/edit",asyncWrap(async (req,res)=>{
     let {id} = req.params;
     let chat = await Chat.findById(id);
     res.render("edit.ejs",{chat});
-})
+}))
 
-app.put("/chats/:id",async (req,res)=>{
+app.put("/chats/:id",asyncWrap(async (req,res)=>{
     let {id} = req.params;
     let {msg : newMsg} = req.body;
     let updateChat = await Chat.findByIdAndUpdate(id,{msg:newMsg},{runValidators:true,new:true});
     console.log("updated chat:",updateChat);
     res.redirect("/chats");
-})
+}))
 
-app.delete("/chats/:id",async (req,res)=>{
+app.delete("/chats/:id",asyncWrap(async (req,res)=>{
     let {id} = req.params;
     let deletedChat = await Chat.findByIdAndDelete(id);
     console.log(deletedChat);
     res.redirect("/chats");
-})
+}))
 
-app.get("/chats/:id",async (req,res,next)=>{
+app.get("/chats/:id",asyncWrap(async (req,res,next)=>{
     let {id} = req.params;
     let chat = await Chat.findById(id);
     if(!chat){
@@ -98,9 +98,28 @@ app.get("/chats/:id",async (req,res,next)=>{
     }
     // console.log(chat);
     res.render("show.ejs",{chat});
+}))
+
+function handlingValidationError(err){
+    console.log("validation error occured!");
+    return err;
+}
+
+app.use((err,req,res,next)=>{
+    console.log(err.name);
+    if(err.name === "ValidationError"){
+        err = handlingValidationError(err);
+    }
+    next(err);
 })
 
 app.use((err,req,res,next)=>{
     let {status=500,message="Some error occured"} = err;
     res.status(status).send(message);
 })
+
+function asyncWrap(fn){
+    return function(req,res,next){
+        fn(req,res,next).catch((err)=>{next(err)})
+    }
+}
